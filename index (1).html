@@ -1,0 +1,467 @@
+<title>Hvad siger du nu?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow "call" column — a customer line, then your three possible replies, like a call transcript */
+:root {
+  --bg: #F5F4F0;
+  --surface: #FFFFFF;
+  --ink: #1B2430;
+  --ink-soft: #4E5866;
+  --line: #DCD8CF;
+  --accent: #B8442C;
+  --accent-soft: #F3E2DC;
+  --navy: #1B2430;
+  --on-navy: #F2EFE8;
+  --good: #2F6B4F;
+  --good-soft: #DFEDE5;
+  --bad: #9A3A28;
+  --bad-soft: #F6E1DB;
+  --font-display: 'Libre Baskerville', Georgia, 'Times New Roman', serif;
+  --font-body: 'Public Sans', 'Segoe UI', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171F; --surface: #1C232E; --ink: #ECE8E0; --ink-soft: #A9B1BC; --line: #2E3744;
+    --accent: #E58A72; --accent-soft: #3A2620; --navy: #0C1016; --on-navy: #ECE8E0;
+    --good: #7FC4A0; --good-soft: #1D3328; --bad: #EE9A86; --bad-soft: #3A2420;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171F; --surface: #1C232E; --ink: #ECE8E0; --ink-soft: #A9B1BC; --line: #2E3744;
+  --accent: #E58A72; --accent-soft: #3A2620; --navy: #0C1016; --on-navy: #ECE8E0;
+  --good: #7FC4A0; --good-soft: #1D3328; --bad: #EE9A86; --bad-soft: #3A2420;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(30px, 6vw, 44px); }
+h2 { font-size: clamp(22px, 4.4vw, 28px); }
+p { margin: 0; }
+.muted { color: var(--ink-soft); }
+
+/* Header bar: call status */
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 4px var(--good-soft); }
+.score { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.progress { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.progress > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .35s ease; }
+
+.tag { align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+
+/* Customer line */
+.who { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+.customer { background: var(--navy); color: var(--on-navy); border-radius: 4px 18px 18px 18px; padding: 18px 20px; font-family: var(--font-display); font-size: clamp(18px, 3.6vw, 21px); line-height: 1.45; }
+.situation { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; font-size: 17px; }
+.ask { font-weight: 600; font-size: 15px; }
+
+/* Replies */
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt {
+  display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; text-align: left; width: 100%;
+  font: inherit; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 18px 4px 18px 18px;
+  padding: 14px 16px; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
+}
+.opt:hover:not(:disabled) { border-color: var(--accent); transform: translateX(-2px); }
+.opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.opt:disabled { cursor: default; }
+.key { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.opt.right { border-color: var(--good); background: var(--good-soft); }
+.opt.right .key { border-color: var(--good); color: var(--good); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-soft); }
+.opt.wrong .key { border-color: var(--bad); color: var(--bad); }
+.opt.dim { opacity: .55; }
+.verdict { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; display: block; margin-top: 6px; }
+.right .verdict { color: var(--good); }
+.wrong .verdict { color: var(--bad); }
+
+/* Feedback */
+.feedback { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+.feedback h3 { margin: 0; font-size: 17px; }
+.feedback .fokus { font-size: 14px; color: var(--ink-soft); }
+.feedback .fokus b { color: var(--ink); }
+
+.btn {
+  align-self: flex-start; font: inherit; font-weight: 700; font-size: 15px; border: 0; border-radius: 999px; padding: 12px 22px; cursor: pointer;
+  background: var(--accent); color: var(--surface);
+}
+.btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+.btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.hint { font-size: 13px; color: var(--ink-soft); }
+
+/* Start + end */
+.intro { display: flex; flex-direction: column; gap: 16px; }
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rules div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-size: 14px; }
+.rules b { display: block; font-family: var(--font-display); font-size: 22px; color: var(--accent); }
+.big { font-family: var(--font-display); font-weight: 700; font-size: clamp(56px, 14vw, 88px); line-height: 1; font-variant-numeric: tabular-nums; }
+.big small { font-size: .4em; color: var(--ink-soft); font-weight: 400; }
+.phases { display: flex; flex-direction: column; gap: 8px; }
+.ph { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+.ph .pill { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.pill.ok { background: var(--good-soft); color: var(--good); }
+.pill.no { background: var(--bad-soft); color: var(--bad); }
+.focuslist { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 700; }
+.field input { font: inherit; font-size: 16px; color: var(--ink); background: var(--surface); border: 1.5px solid var(--line); border-radius: 10px; padding: 12px 14px; max-width: 360px; width: 100%; }
+.field input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.err { font-size: 13px; font-weight: 600; color: var(--bad); }
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+.result-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.result .ph { background: var(--bg); }
+.small { font-size: 13px; }
+.scoreline { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+.scoreline h2 { margin-bottom: 4px; }
+textarea { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; width: 100%; resize: vertical; }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.mode { font: inherit; color: var(--ink); text-align: left; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 4px; cursor: pointer; transition: border-color .15s, transform .15s; }
+.mode b { font-family: var(--font-display); font-size: 19px; }
+.mode span { font-size: 14px; }
+.mode:first-child { border-color: var(--accent); }
+.mode:hover { border-color: var(--accent); transform: translateY(-2px); }
+.mode:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) { .rules, .modes { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap" id="app" aria-live="polite"></div>
+
+<script>
+const Q = [
+  // ---- Situationer ----
+  { kind: 's', phase: 'Fase 1 · Skab kontakt', customer: 'Jeg vil gerne opsige mit abonnement.',
+    options: [
+      { t: '»Det kan jeg sagtens hjælpe dig med. Må jeg stille et par spørgsmål først, så vi gør det rigtige for dig?«', ok: true },
+      { t: '»Det er jeg ked af at høre. Før jeg opsiger det, vil jeg gerne fortælle dig om et godt tilbud, vi har lige nu.«' },
+      { t: '»Det kan jeg godt hjælpe med. Er du helt sikker på, at du vil stoppe – du har jo været kunde i mange år?«' } ],
+    why: 'Sig ja til at hjælpe, og bed om lov til at spørge. Et tilbud i første sætning er rabat før afdækning – du ved endnu ikke, hvad problemet er. »Er du helt sikker?« lyder venligt, men sætter kunden i forsvarsposition.',
+    fokus: 'Anerkend beslutningen, før jeg stiller spørgsmål' },
+  { kind: 's', phase: 'Udgående efter opsigelse', situation: 'Du ringer op til en kunde, der har opsagt via mail.', ask: 'Hvordan åbner du samtalen?',
+    options: [
+      { t: '»Jeg kan se, vi har modtaget en opsigelse fra dig, og jeg ville lige høre, hvad årsagen er til den.«', ok: true },
+      { t: '»Jeg kan se, vi har modtaget din opsigelse. Inden den går igennem, har jeg et tilbud, jeg gerne vil give dig.«' },
+      { t: '»Jeg kan se, du har opsagt. Er det noget, du har fortrudt, eller skal vi bare lade den gå igennem?«' } ],
+    why: 'Åbningen er kort og ærlig: Den siger, hvorfor du ringer, og spørger åbent til årsagen. »Inden den går igennem« lyder, som om opsigelsen bliver holdt tilbage. »Har du fortrudt?« er et lukket spørgsmål, som de fleste svarer nej til.',
+    fokus: 'Åbn roligt, når jeg ringer op efter en opsigelse' },
+  { kind: 's', phase: 'Anerkendelse', customer: 'Den er simpelthen blevet for dyr.',
+    options: [
+      { t: '»Det forstår jeg godt. Den er også blevet dyrere, end den var, så det er helt forståeligt.«' },
+      { t: '»Det forstår jeg godt – det er en udgift, man mærker hver måned.«', ok: true },
+      { t: '»Det forstår jeg godt, men du får faktisk rigtig meget for pengene, når man ser på det hele.«' } ],
+    why: 'Anerkend uden at give kunden ret. »Den er også blevet dyrere« bekræfter, at opsigelsen er det rigtige. »… men du får faktisk …« argumenterer imod – og »men« sletter anerkendelsen før det.',
+    fokus: 'Anerkend uden at give kunden ret' },
+  { kind: 's', phase: 'Fase 2 · Afdæk situationen', customer: 'Den er for dyr.', ask: 'Hvilket situationsspørgsmål stiller du?',
+    options: [
+      { t: '»Hvor meget betaler du for abonnementet i dag?«' },
+      { t: '»Hvad har ændret sig, siden prisen føltes rimelig?«', ok: true },
+      { t: '»Hvad ville en rimelig pris være for dig?«' } ],
+    why: 'Prisen kan du selv slå op. »Hvad ville en rimelig pris være?« starter en forhandling om pris, før du ved, hvad problemet er. Spørg til, hvad der har ændret sig – prisen, økonomien, læsevanerne eller hverdagen.',
+    fokus: 'Find ud af, hvad »for dyr« betyder' },
+  { kind: 's', phase: 'Pris', customer: 'Vi skal spare derhjemme.',
+    options: [
+      { t: '»Det er klogt at se på udgifterne. Jeg kan give dig 50 % de næste tre måneder, så du får lidt luft i budgettet med det samme.«' },
+      { t: '»Det er klogt at se på udgifterne. Er det lige nu, økonomien ikke tillader det – eller skal det være billigere på lang sigt?«', ok: true },
+      { t: '»Det er klogt at se på udgifterne. Hvor meget er det, I skal spare om måneden, så jeg kan finde noget, der passer?«' } ],
+    why: 'Svaret på »lige nu eller på lang sigt?« afgør løsningen: en midlertidig løsning som en pause eller en rabat – eller et billigere produkt. Rabatten kommer før afdækningen og rammer måske forkert. Spørgsmålet om, hvor meget de skal spare, er privat – og svaret hjælper dig ikke til at vælge løsning.',
+    fokus: 'Skeln mellem »lige nu« og »på lang sigt«' },
+  { kind: 's', phase: 'Spørgeteknik', situation: 'Kunden har fortalt, at hun ikke når at læse avisen i hverdagen.', ask: 'Hvilket spørgsmål åbner samtalen?',
+    options: [
+      { t: '»Er det rigtigt forstået, at du egentlig slet ikke har tid til avisen længere?«' },
+      { t: '»Er det rigtigt forstået, at du ikke rigtig bruger e-avisen?«' },
+      { t: '»Er det rigtigt forstået, at du egentlig er glad for avisen, men ikke når den i hverdagen?«', ok: true } ],
+    why: 'Alle tre er tjek-spørgsmål, men kun ét åbner. »Slet ikke« og »ikke rigtig« får kunden til at bekræfte det negative. Det gode spørgsmål har noget positivt (»glad for avisen«) og en afgrænsning (»i hverdagen«).',
+    fokus: 'Undgå lukkede spørgsmål, der bekræfter det negative' },
+  { kind: 's', phase: 'Tid', customer: 'Jeg har ikke tid til at læse den.',
+    options: [
+      { t: '»Det kan jeg godt forstå – det kan være svært at finde tid. Har du prøvet e-avisen? Den kan du læse, hvor du er.«' },
+      { t: '»Det kan jeg godt forstå – det kan være svært at finde tid i en travl hverdag. Da du havde tid, hvornår læste du den så?«', ok: true },
+      { t: '»Det kan jeg godt forstå – det hører jeg fra mange. Så du har slet ikke tid til den i dag?«' } ],
+    why: 'Alle tre anerkender. Forskellen er det, der kommer bagefter. E-avisen kan være den rigtige løsning, men ikke før du ved, hvordan kunden læser. »Slet ikke tid« bekræfter det negative. Spørg til, hvornår avisen gav værdi.',
+    fokus: 'Spørg til, hvornår avisen gav værdi' },
+  { kind: 's', phase: 'Fase 3 · Afdæk behovet', customer: 'Jeg læser mest weekendavisen.', ask: 'Hvad gør du nu?',
+    options: [
+      { t: '»Det lyder hyggeligt. Så skal du måske have en weekendavis i stedet?«' },
+      { t: '»Det lyder hyggeligt. Hvilket stof læser du især?«', ok: true },
+      { t: '»Det lyder hyggeligt. Så læser du ikke rigtig avisen i hverdagen?«' } ],
+    why: 'Gå et lag dybere, før du løser. Weekendavisen er måske den rigtige løsning, men den kommer for tidligt – du ved endnu ikke, hvad kunden holder af. Spørgsmålet om hverdagen bekræfter det negative.',
+    fokus: 'Spørg én gang mere, før jeg tilbyder noget' },
+  { kind: 's', phase: 'Indvendinger · Isolér', situation: 'Kunden har sagt, at prisen er problemet.', ask: 'Hvad gør du, før du kommer med en løsning?',
+    options: [
+      { t: '»Så lad mig se, om jeg kan finde en løsning til dig, hvor prisen ikke er et problem.«' },
+      { t: '»Hvis vi fandt en løsning på prisen – ville du så gerne blive?«', ok: true },
+      { t: '»Det forstår jeg. Prisen er steget, fordi både papir og levering er blevet dyrere.«' } ],
+    why: 'Isolér indvendingen, før du løser den. Løser du prisen, og det ikke var den rigtige grund, kommer den næste: »… men jeg har jo heller ikke tid.« En forklaring på prisen kan være fin – men efter, at du ved, hvad kunden vil.',
+    fokus: 'Isolér indvendingen' },
+  { kind: 's', phase: 'Før løsningen', situation: 'Du har afdækket, hvad kunden holder af, og hvad problemet er.', ask: 'Hvad siger du nu?',
+    options: [
+      { t: '»Så har jeg tre muligheder til dig: færre dage, e-avisen eller en pause – og så kan du selv vælge den, der passer dig bedst.«' },
+      { t: '»Hvis jeg har forstået dig rigtigt, holder du af søndagsavisen, men når den ikke i hverdagen. Er det rigtigt forstået?«', ok: true },
+      { t: '»Så har jeg præcis den rigtige løsning til dig, nemlig en avis, der kun kommer i weekenden, hvor du har tid til den.«' } ],
+    why: 'Opsummér, før du løser. Et ja til opsummeringen gør løsningen let at sige ja til. Weekendavisen er måske rigtig, men uden opsummering har kunden ikke bekræftet problemet. Tre muligheder får kunden til at vælge den letteste – at opsige.',
+    fokus: 'Opsummér, før jeg kommer med en løsning' },
+  { kind: 's', phase: 'Fase 4 · Præsenter løsningen', situation: 'Afdækningen viste: Kunden holder af debatten og lørdagsavisen, og økonomien er presset.', ask: 'Hvordan præsenterer du løsningen?',
+    options: [
+      { t: '»Jeg kan gøre prisen lettere for dig med en rabat – og så beholder du jo også debatten og lørdagen.«' },
+      { t: '»Så beholder du debatten og din lørdag – og det koster kun [pris] om måneden. Skal vi ikke bare gøre det?«' },
+      { t: '»Så beholder du debatten og din lørdag – og jeg kan gøre prisen lettere for dig. Hvordan lyder det?«', ok: true } ],
+    why: 'Rækkefølgen tæller: værdien først, prisen bagefter – ellers handler samtalen om rabat. »Skal vi ikke bare gøre det?« presser i stedet for at tjekke. »Hvordan lyder det?« giver kunden plads til at sige ja – eller til en ny indvending.',
+    fokus: 'Tal værdi før rabat' },
+  { kind: 's', phase: 'Anerkendelse', customer: 'Jeg læser alligevel bare nyheder på mobilen.',
+    options: [
+      { t: '»Det giver god mening, men på mobilen får du jo ikke de lange artikler og baggrunden.«' },
+      { t: '»Det giver god mening, når man har travlt. Hvilke nyheder er det, du tjekker?«', ok: true },
+      { t: '»Det giver god mening. Så bruger du ikke rigtig avisen længere?«' } ],
+    why: '»… men på mobilen …« argumenterer imod, og kunden hører »du tager fejl«. »Ikke rigtig længere« bekræfter det negative. Spørg nysgerrigt – svaret viser, om kunden kender den digitale adgang, de allerede har.',
+    fokus: 'Sig »og« i stedet for »men«' },
+  { kind: 's', phase: 'Fase 5 · Afslut', situation: 'Kunden vil stadig stoppe.', ask: 'Hvordan runder du af?',
+    options: [
+      { t: '»Det har jeg registreret. Må jeg lige spørge en sidste gang, om ikke et rigtig godt tilbud kunne få dig til at blive?«' },
+      { t: '»Det har jeg registreret. Din sidste avis kommer [dato]. Tak, fordi du har været abonnent – du er altid velkommen tilbage.«', ok: true },
+      { t: '»Det har jeg registreret, og du får en bekræftelse på mail om lidt. Tak for snakken, og rigtig god dag til dig.«' } ],
+    why: 'En god opsigelse er også et godt kald. Et tilbud mere efter et klart nej er pres. Bekræftelsen på mail er fin, men kunden mangler at vide, hvornår avisen stopper – og døren står ikke åben for at komme tilbage.',
+    fokus: 'Gør det let og venligt, når kunden går' },
+
+  // ---- Faserne ----
+  { kind: 'f', phase: 'Faserne', situation: 'Et fastholdelseskald har fem faser.', ask: 'Hvad er den rigtige rækkefølge?',
+    options: [
+      { t: 'Skab kontakt → Afdæk situationen → Afdæk behovet → Præsenter løsningen → Afslut og følg op', ok: true },
+      { t: 'Skab kontakt → Afdæk behovet → Afdæk situationen → Præsenter løsningen → Afslut og følg op' },
+      { t: 'Skab kontakt → Afdæk situationen → Præsenter løsningen → Afdæk behovet → Afslut og følg op' } ],
+    why: 'Først hvad kunden gør (situationen), så hvorfor det betyder noget (behovet). Løsningen kommer først, når begge dele er afdækket – ellers gætter du.',
+    fokus: 'Spørg én gang mere, før jeg tilbyder noget' },
+  { kind: 'f', phase: 'Faserne', situation: 'Kunden har sagt: »Jeg læser den mest om søndagen.« Du spørger: »Hvad betyder søndagsavisen for dig?«', ask: 'Hvilken fase er du i?',
+    options: [
+      { t: 'Fase 2 · Afdæk situationen – du spørger til kundens læsevaner.' },
+      { t: 'Fase 3 · Afdæk behovet – du spørger til, hvorfor det betyder noget.', ok: true },
+      { t: 'Fase 4 · Præsenter løsningen – du forbereder en weekendløsning.' } ],
+    why: 'Situationen fortæller, hvad kunden gør: »Jeg læser om søndagen.« Behovet fortæller, hvorfor det betyder noget: »Det er min tid med kaffen.« Det er behovet, løsningen skal kobles til.',
+    fokus: 'Find grunden bag grunden' },
+  { kind: 'f', phase: 'Faserne', situation: 'Tænk på de fem faser.', ask: 'Hvilken fejl er den mest almindelige i et fastholdelseskald?',
+    options: [
+      { t: 'At bruge for lang tid på at skabe kontakt i fase 1, så kunden bliver utålmodig og lægger på.' },
+      { t: 'At springe fra fase 2 direkte til fase 4 – kunden siger pris, og konsulenten tilbyder rabat.', ok: true },
+      { t: 'At glemme den lovpligtige opsummering i fase 5, når aftalen bliver ændret undervejs i kaldet.' } ],
+    why: 'Rabatrefleksen: Kunden siger »for dyr«, og konsulenten tilbyder rabat, før behovet er afdækket. Det giver et pænt fastholdelsestal – og en kunde, der kan stå klar til at opsige igen, når rabatten udløber.',
+    fokus: 'Tal værdi før rabat' },
+  { kind: 'f', phase: 'Faserne', situation: 'Anerkendelse er en vigtig del af modellen.', ask: 'Hvor hører den hjemme?',
+    options: [
+      { t: 'I fase 1, hvor relationen og den trygge ramme bliver skabt.' },
+      { t: 'I fase 5, så kunden er tryg ved løsningen, inden samtalen slutter.' },
+      { t: 'I alle fem faser – før hvert nyt spørgsmål.', ok: true } ],
+    why: 'Anerkendelse er båndet under hele modellen. Rytmen er: anerkend, spørg, lyt – anerkend, spørg, lyt. Kunden, der føler sig hørt, fortæller mere.',
+    fokus: 'Anerkend, før jeg stiller næste spørgsmål' },
+  { kind: 'f', phase: 'Indvendinger', situation: 'Kunden kommer med en indvending.', ask: 'Hvad er den rigtige rækkefølge?',
+    options: [
+      { t: 'Anerkend → Svar → Undersøg → Isolér → Tjek' },
+      { t: 'Anerkend → Undersøg → Isolér → Svar → Tjek', ok: true },
+      { t: 'Undersøg → Anerkend → Isolér → Svar → Tjek' } ],
+    why: 'Anerkend først, så kunden føler sig hørt. Undersøg, hvad indvendingen betyder. Isolér, om det er den eneste grund. Først derefter svarer du – og tjekker til sidst med »Hvordan lyder det?«.',
+    fokus: 'Isolér indvendingen' },
+  { kind: 'f', phase: 'Faserne', situation: 'Afdækningen viser, at kundens økonomi er presset lige nu – men at hun er glad for avisen. Både en pause og en rabat kan passe.', ask: 'Hvad spørger du om for at vælge mellem dem?',
+    options: [
+      { t: '»Vil du gerne blive ved med at læse avisen, mens det står på – eller vil det hjælpe mest at slippe helt for udgiften en periode?«', ok: true },
+      { t: '»Hvor længe tror du, at økonomien vil være presset?«' },
+      { t: '»Hvor meget kan du betale om måneden lige nu?«' } ],
+    why: 'Pause og rabat løser begge et »lige nu«-problem. Forskellen er, om kunden vil læse imens: Vil hun beholde avisen, passer rabatten. Skal udgiften helt væk en periode, passer pausen. Hvor længe det står på, hjælper dig med at vælge perioden – ikke løsningen. Og hvor meget hun kan betale, er privat.',
+    fokus: 'Skeln mellem »lige nu« og »på lang sigt«' },
+  { kind: 'f', phase: 'Faserne', situation: 'Vi har to gode udfald af et fastholdelseskald.', ask: 'Hvornår er et kald lykkedes?',
+    options: [
+      { t: 'Når kunden bliver – uanset hvilken løsning eller pris kunden ender på.' },
+      { t: 'Når kunden bliver på en løsning, der passer – eller går med en god oplevelse.', ok: true },
+      { t: 'Når kunden bliver uden at have fået rabat, så vi ikke taber penge på kaldet.' } ],
+    why: 'En kunde, der bliver på en rabat, de ikke har brug for, og opsiger igen om tre måneder, er en udsættelse – ikke en succes. Og en god opsigelse tæller også.',
+    fokus: 'Gør det let og venligt, når kunden går' },
+  { kind: 'f', phase: 'Fase 5 · Afslut', situation: 'Kunden siger ja til en ny løsning i telefonen.', ask: 'Hvad skal altid med i opsummeringen?',
+    options: [
+      { t: 'Produkt, pris, periode og startdato – og at kunden kan ringe, hvis der er spørgsmål.' },
+      { t: 'Produkt, pris, periode, startdato – og hvad prisen er bagefter.', ok: true },
+      { t: 'Produkt, pris og prisen bagefter – og at kunden har 14 dages fortrydelsesret.' } ],
+    why: 'Opsummeringen skal indeholde produkt, pris, periode, startdato og prisen bagefter, så kunden ikke bliver overrasket på næste regning. Fortrydelsesret og »ring, hvis du har spørgsmål« er god stil – men det er ikke nok alene. Ordet ordrebekræftelse hører til gensalg og nysalg, ikke fastholdelse.',
+    fokus: 'Ingen overraskelser i opsummeringen' },
+];
+
+const app = document.getElementById('app');
+let state = { screen: 'start', name: '', mode: 'all', order: [], i: 0, answers: [], picked: null, optOrder: [], finished: null };
+const MODES = { all: 'Hele spillet', f: 'Faserne', s: 'Situationer' };
+const pool = m => Q.map((q, i) => i).filter(i => m === 'all' || Q[i].kind === m);
+
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+const score = () => state.answers.filter(a => a.ok).length;
+
+function start(mode) {
+  mode = mode || state.mode || 'all';
+  const name = state.name;
+  let order;
+  if (mode === 'all') order = [...shuffle(pool('f')), ...shuffle(pool('s'))];
+  else order = shuffle(pool(mode));
+  state = { screen: 'q', name, mode, order, i: 0, answers: [], picked: null, optOrder: [], finished: null };
+  newQuestion(); render();
+}
+function newQuestion() { state.picked = null; state.optOrder = shuffle([0, 1, 2]); }
+function pick(n) {
+  if (state.picked !== null) return;
+  const q = Q[state.order[state.i]];
+  state.picked = state.optOrder[n];
+  state.answers.push({ q: state.order[state.i], ok: !!q.options[state.picked].ok });
+  render();
+  const nb = document.getElementById('next'); if (nb) nb.focus();
+}
+function next() {
+  if (state.i < state.order.length - 1) { state.i++; newQuestion(); state.screen = 'q'; }
+  else { state.screen = 'end'; state.finished = new Date().toISOString(); }
+  render(); window.scrollTo({ top: 0 });
+}
+
+function renderStart() {
+  const nf = pool('f').length, ns = pool('s').length;
+  app.innerHTML = `
+  <div class="intro">
+    <span class="eyebrow">Fastholdelse · Opfølgning</span>
+    <h1>Hvad siger du nu?</h1>
+    <p class="muted">Test dig selv på de fem faser og på rigtige situationer fra fastholdelseskald. Alle svar lyder fornuftige – kun ét er det bedste. Efter hvert svar ser du hvorfor, og til sidst får du forslag til dine fokuspunkter.</p>
+    <div class="field">
+      <label for="name">Dit navn</label>
+      <input id="name" type="text" autocomplete="name" maxlength="40" placeholder="Fx Mette Hansen" value="${esc(state.name)}">
+      <span class="err" id="err" hidden>Skriv dit navn, før du starter.</span>
+    </div>
+    <div class="modes">
+      <button class="mode" data-m="all"><b>Hele spillet</b><span>${nf + ns} spørgsmål · ca. 8 min</span><span class="muted">Først faserne, så situationerne</span></button>
+      <button class="mode" data-m="f"><b>Faserne</b><span>${nf} spørgsmål · ca. 3 min</span><span class="muted">Modellen, rækkefølgen og indvendinger</span></button>
+      <button class="mode" data-m="s"><b>Situationer</b><span>${ns} spørgsmål · ca. 5 min</span><span class="muted">Kunden siger noget – hvad svarer du?</span></button>
+    </div>
+    <p class="hint">Tip: Tasterne 1–3 vælger et svar, og Enter går videre.</p>
+  </div>`;
+  const inp = document.getElementById('name');
+  inp.oninput = () => { state.name = inp.value; document.getElementById('err').hidden = true; };
+  app.querySelectorAll('.mode').forEach(b => b.onclick = () => {
+    state.name = inp.value.trim();
+    if (!state.name) { document.getElementById('err').hidden = false; inp.focus(); return; }
+    start(b.dataset.m);
+  });
+}
+
+function renderQ() {
+  const q = Q[state.order[state.i]];
+  const n = state.i + 1, total = state.order.length;
+  const answered = state.picked !== null;
+  const lead = q.customer
+    ? `<div><div class="who">Kunden</div><div class="customer">»${esc(q.customer)}«</div></div>`
+    : `<p class="situation">${esc(q.situation)}</p>`;
+  const opts = state.optOrder.map((oi, k) => {
+    const o = q.options[oi];
+    let cls = 'opt', verdict = '';
+    if (answered) {
+      if (o.ok) { cls += ' right'; verdict = '<span class="verdict">Det bedste svar</span>'; }
+      else if (oi === state.picked) { cls += ' wrong'; verdict = '<span class="verdict">Dit svar</span>'; }
+      else cls += ' dim';
+    }
+    return `<button class="${cls}" data-k="${k}" ${answered ? 'disabled' : ''}><span class="key">${k + 1}</span><span>${esc(o.t)}${verdict}</span></button>`;
+  }).join('');
+  const last = state.answers[state.answers.length - 1];
+  const fb = answered ? `
+    <div class="feedback">
+      <h3>${last.ok ? 'Godt valgt.' : 'Ikke helt.'}</h3>
+      <p>${esc(q.why)}</p>
+      <p class="fokus">Fokuspunkt: <b>${esc(q.fokus)}</b></p>
+    </div>
+    <div class="row"><button class="btn" id="next">${n < total ? 'Næste kald' : 'Se resultat'}</button><span class="hint">eller tryk Enter</span></div>` : '';
+  app.innerHTML = `
+    <div class="bar">
+      <span class="status"><span class="dot" aria-hidden="true"></span>${q.kind === 'f' ? 'Spørgsmål' : 'Kald'} ${n} af ${total}</span>
+      <span class="score">${score()} point</span>
+    </div>
+    <div class="progress" aria-hidden="true"><i style="width:${((n - (answered ? 0 : 1)) / total) * 100}%"></i></div>
+    <span class="tag">${esc(q.phase)}</span>
+    ${lead}
+    ${q.ask ? `<p class="ask">${esc(q.ask)}</p>` : `<p class="ask">Hvad svarer du?</p>`}
+    ${q.kind === 's' ? '<div class="who" style="margin-bottom:-10px">Du</div>' : ''}
+    <div class="options">${opts}</div>
+    ${fb}`;
+  app.querySelectorAll('.opt').forEach(b => b.onclick = () => pick(+b.dataset.k));
+  const nb = document.getElementById('next'); if (nb) nb.onclick = next;
+}
+
+function renderEnd() {
+  const s = score(), total = state.answers.length, pct = Math.round(s / total * 100);
+  const label = s === total ? 'Klar til gulvet.' : s >= total - 2 ? 'Rigtig godt kørt.' : s >= total - 5 ? 'Godt på vej.' : 'Der er noget at øve.';
+  const byPhase = {};
+  state.answers.forEach(a => { const p = Q[a.q].phase; byPhase[p] = byPhase[p] || { ok: 0, n: 0 }; byPhase[p].n++; if (a.ok) byPhase[p].ok++; });
+  const missed = state.answers.filter(a => !a.ok).map(a => Q[a.q].fokus);
+  const uniq = [...new Set(missed)].slice(0, 3);
+  const d = state.finished ? new Date(state.finished) : new Date();
+  const dato = d.toLocaleDateString('da-DK', { day: 'numeric', month: 'long', year: 'numeric' });
+  const phases = Object.entries(byPhase).map(([p, v]) =>
+    `<div class="ph"><span>${esc(p)}</span><span class="pill ${v.ok === v.n ? 'ok' : 'no'}">${v.ok} af ${v.n}</span></div>`).join('');
+  const summary = [
+    `Fastholdelse – ${MODES[state.mode]}`,
+    `Navn: ${state.name}`,
+    `Dato: ${dato}`,
+    `Resultat: ${s} af ${total} rigtige (${pct} %)`,
+    uniq.length ? `Fokuspunkter: ${uniq.join('; ')}` : 'Fokuspunkter: alle rigtige'
+  ].join('\n');
+  app.innerHTML = `
+    <div class="result">
+      <div class="result-head">
+        <span class="eyebrow">Resultat · ${esc(MODES[state.mode])}</span>
+        <span class="muted small">${esc(dato)}</span>
+      </div>
+      <h1>${esc(state.name)}</h1>
+      <div class="scoreline">
+        <div class="big">${s}<small> / ${total}</small></div>
+        <div><h2>${label}</h2><p class="muted">${pct} % rigtige</p></div>
+      </div>
+      <div class="phases">${phases}</div>
+      ${uniq.length ? `
+        <div class="feedback">
+          <h3>Forslag til dine fokuspunkter</h3>
+          <p class="muted">De spørgsmål, du ramte forkert, peger på disse punkter fra arket »Mine fokuspunkter«.</p>
+          <ol class="focuslist">${uniq.map(f => `<li>${esc(f)}</li>`).join('')}</ol>
+        </div>` : `
+        <div class="feedback">
+          <h3>Alle rigtige</h3>
+          <p class="muted">Det svære er at gøre det i et rigtigt kald, når kunden er presset. Vælg et fokuspunkt, du vil høre dig selv gøre på næste gennemlytning.</p>
+        </div>`}
+    </div>
+    <div class="feedback">
+      <h3>Send dit resultat</h3>
+      <p class="muted">Kopiér teksten, og send den til din leder – eller tag et skærmbillede af siden.</p>
+      <textarea id="sum" readonly rows="5">${esc(summary)}</textarea>
+      <div class="row"><button class="btn" id="copy">Kopiér resultat</button><span class="hint" id="copied" role="status"></span></div>
+    </div>
+    <div class="row"><button class="btn ghost" id="again">Spil igen</button><button class="btn ghost" id="menu">Vælg et andet spil</button></div>`;
+  document.getElementById('copy').onclick = () => {
+    const ta = document.getElementById('sum'), msg = document.getElementById('copied');
+    const fallback = () => { ta.focus(); ta.select(); msg.textContent = 'Teksten er markeret – tryk Ctrl+C (Cmd+C på Mac).'; };
+    try {
+      navigator.clipboard.writeText(summary).then(() => { msg.textContent = 'Kopieret.'; }, fallback);
+    } catch (e) { fallback(); }
+  };
+  document.getElementById('again').onclick = () => start(state.mode);
+  document.getElementById('menu').onclick = () => { state.screen = 'start'; render(); };
+}
+
+function render() { if (state.screen === 'start') renderStart(); else if (state.screen === 'q') renderQ(); else renderEnd(); }
+
+document.addEventListener('keydown', e => {
+  if (state.screen === 'q' && state.picked === null && ['1', '2', '3'].includes(e.key)) pick(+e.key - 1);
+  else if (state.screen === 'q' && state.picked !== null && e.key === 'Enter' && document.activeElement?.id !== 'next') next();
+});
+
+function boot(data) { if (data && data.state) state = data.state; render(); }
+window.claude?.hot?.snapshot?.(() => ({ state }));
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
